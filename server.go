@@ -4,7 +4,6 @@ import (
 	"github.com/colemickens/gobble"
 	"log"
 	"net"
-	"net/http"
 )
 
 var lastUserId int = 0
@@ -27,56 +26,52 @@ func server(host string) error {
 		return err
 	}
 
-	go func() {
-		for {
-			lastUserId++
+	for {
+		lastUserId++
 
-			log.Println("accept...")
-			conn, err := conn.Accept()
+		log.Println("accept...")
+		conn, err := conn.Accept()
 
-			if err != nil {
-				log.Println("err accepting", err)
-			}
+		if err != nil {
+			log.Println("err accepting", err)
+			continue
+		}
 
-			u := &user{
-				id:          lastUserId,
-				conn:        conn,
-				transmitter: gobble.NewTransmitter(conn),
-				receiver:    gobble.NewReceiver(conn),
-			}
+		u := &user{
+			id:          lastUserId,
+			conn:        conn,
+			transmitter: gobble.NewTransmitter(conn),
+			receiver:    gobble.NewReceiver(conn),
+		}
 
-			users[lastUserId] = u
-			go func() {
-				for {
-					msg, _ := u.receiver.Receive()
+		users[lastUserId] = u
+		go func() {
+			for {
+				msg, _ := u.receiver.Receive()
 
-					switch msg.(type) {
+				switch msg.(type) {
 
-					case PcSignal:
-						s := msg.(PcSignal)
-						s.From = u.id
+				case PcSignal:
+					s := msg.(PcSignal)
+					s.From = u.id
 
-						log.Println("PcSignal from", s.From, "to", s.To, ":", s)
+					log.Println("PcSignal from", s.From, "to", s.To, ":", s)
 
-						toUser := userById(s.To)
-						if toUser != nil {
-							toUser.transmitter.Transmit(s)
-						}
+					toUser := userById(s.To)
+					if toUser != nil {
+						toUser.transmitter.Transmit(s)
 					}
 				}
-			}()
+			}
+		}()
 
-			// tell about other user(s)
-			for id, _ := range users {
-				if id != u.id {
-					u.transmitter.Transmit(id)
-				}
+		// tell about other user(s)
+		for id, _ := range users {
+			if id != u.id {
+				u.transmitter.Transmit(id)
 			}
 		}
-	}()
-
-	http.Handle("/", http.FileServer(http.Dir("./ui/")))
-	log.Fatal(http.ListenAndServe(":80", nil))
+	}
 
 	return nil
 }
