@@ -16,6 +16,8 @@ func client_init() {
 }
 
 func client(host string) error {
+	client_init()
+
 	var err error
 
 	log.Println("trying to resolve server:", host)
