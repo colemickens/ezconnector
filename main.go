@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/colemickens/gobble"
 	"log"
 	"os"
 )
@@ -9,6 +10,10 @@ type PcSignal struct {
 	From    int
 	To      int
 	Payload []byte
+}
+
+func init() {
+	gobble.Register(&PcSignal{})
 }
 
 func main() {
