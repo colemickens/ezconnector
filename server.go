@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/colemickens/gobble"
-	common "github.com/colemickens/goxpn/xpncommon"
 	"log"
 	"net"
 	"net/http"
@@ -53,8 +52,8 @@ func server(host string) error {
 
 					switch msg.(type) {
 
-					case common.PcSignal:
-						s := msg.(common.PcSignal)
+					case PcSignal:
+						s := msg.(PcSignal)
 						s.From = u.id
 
 						log.Println("PcSignal from", s.From, "to", s.To, ":", s)
@@ -68,7 +67,7 @@ func server(host string) error {
 			}()
 
 			// tell about other user(s)
-			for id, user := range users {
+			for id, _ := range users {
 				if id != u.id {
 					u.transmitter.Transmit(id)
 				}

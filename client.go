@@ -3,7 +3,6 @@ package main
 import (
 	"code.google.com/p/nat"
 	"github.com/colemickens/gobble"
-	common "github.com/colemickens/goxpn/xpncommon"
 	"log"
 	"net"
 	"time"
@@ -36,11 +35,6 @@ func client(host string) error {
 	transmitter = gobble.NewTransmitter(conn)
 	receiver := gobble.NewReceiver(conn)
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		InitPeerConn()
-	}()
-
 	for {
 		msg, err := receiver.Receive()
 
@@ -49,8 +43,8 @@ func client(host string) error {
 		}
 
 		switch msg.(type) {
-		case common.PcSignal:
-			signal := msg.(common.PcSignal)
+		case PcSignal:
+			signal := msg.(PcSignal)
 			HandlePcSignal(&signal)
 		case int:
 			// this is a previously connected client that
@@ -73,7 +67,7 @@ func newShimConn(to int) *ShimConn {
 }
 
 func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
-	signal := &common.PcSignal{
+	signal := &PcSignal{
 		To:      sc.to,
 		Payload: bytes,
 	}
@@ -125,7 +119,7 @@ func InitPeerConn(peerId int) {
 	MakePeerConn(peerId, true)
 }
 
-func HandlePcSignal(signal *common.PcSignal) {
+func HandlePcSignal(signal *PcSignal) {
 	log.Println("HandlePcSignal(", signal, ")")
 	pc, ok := peerConnections[signal.From]
 	if !ok {
@@ -145,9 +139,10 @@ func handleRemoteUdp(conn *net.Conn) {
 		if err != nil {
 			// blek
 		} else {
-			packet := common.ParseRemoteUdpPacket(data)
-			_ = packet
+			//packet := ParseRemoteUdpPacket(data)
+			//_ = packet
 			//handle.Inject(packet.AsTransmittablePcap())
+			log.Println("recvd packet properly")
 		}
 	}
 }
