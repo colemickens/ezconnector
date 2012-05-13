@@ -66,6 +66,13 @@ func server(host string) error {
 					}
 				}
 			}()
+
+			// tell about other user(s)
+			for id, user := range users {
+				if id != u.id {
+					u.transmitter.Transmit(id)
+				}
+			}
 		}
 	}()
 

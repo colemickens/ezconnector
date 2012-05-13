@@ -36,6 +36,11 @@ func client(host string) error {
 	transmitter = gobble.NewTransmitter(conn)
 	receiver := gobble.NewReceiver(conn)
 
+	go func() {
+		time.Sleep(2 * time.Second)
+		InitPeerConn()
+	}()
+
 	for {
 		msg, err := receiver.Receive()
 
@@ -47,6 +52,11 @@ func client(host string) error {
 		case common.PcSignal:
 			signal := msg.(common.PcSignal)
 			HandlePcSignal(&signal)
+		case int:
+			// this is a previously connected client that
+			// the server is encouraging us to connect to
+			peerId := msg.(int)
+			InitPeerConn(peerId)
 		}
 	}
 
