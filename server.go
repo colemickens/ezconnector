@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/colemickens/gobble"
 	common "github.com/colemickens/goxpn/xpncommon"
 	"log"
@@ -10,23 +9,23 @@ import (
 )
 
 var lastUserId int = 0
-var users [int]*user
+var users map[int]*user
 
 func server_init() {
 	users = make(map[int]*user)
 }
 
-func server() {
+func server(host string) error {
 	server_init()
 
-	addr, err := net.ResolveTCPAddr("tcp", ":9000")
+	addr, err := net.ResolveTCPAddr("tcp", host)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	conn, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	go func() {
@@ -37,7 +36,7 @@ func server() {
 			conn, err := conn.Accept()
 
 			if err != nil {
-				log.Println(err)
+				log.Println("err accepting", err)
 			}
 
 			u := &user{
@@ -47,10 +46,10 @@ func server() {
 				receiver:    gobble.NewReceiver(conn),
 			}
 
-			users = append(users, u)
+			users[lastUserId] = u
 			go func() {
 				for {
-					msg, err := u.receiver.Receive()
+					msg, _ := u.receiver.Receive()
 
 					switch msg.(type) {
 
@@ -72,6 +71,8 @@ func server() {
 
 	http.Handle("/", http.FileServer(http.Dir("./ui/")))
 	log.Fatal(http.ListenAndServe(":80", nil))
+
+	return nil
 }
 
 type user struct {
@@ -89,14 +90,4 @@ func userById(id int) *user {
 		}
 	}
 	return nil
-}
-
-func (u *user) String() string {
-	i := u.id
-	a := u.udpAddr.String()
-	g := "[none]"
-	if u.curGroup != nil {
-		g = u.curGroup.name
-	}
-	return fmt.Sprintf("id:%d, udpAddr:%s, curGroup:%s", i, a, g)
 }

@@ -1,13 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"code.google.com/p/nat"
 	"github.com/colemickens/gobble"
 	common "github.com/colemickens/goxpn/xpncommon"
 	"log"
 	"net"
-	"net/http"
+	"time"
 )
+
+var peerConnections map[int]*PeerConn
+var transmitter *gobble.Transmitter
+
+func client_init() {
+	peerConnections = make(map[int]*PeerConn)
+}
 
 func client(host string) error {
 	var err error
@@ -26,11 +33,11 @@ func client(host string) error {
 		return err
 	}
 
-	c.transmitter = gobble.NewTransmitter(c.serverConn)
-	c.receiver = gobble.NewReceiver(c.serverConn)
+	transmitter = gobble.NewTransmitter(conn)
+	receiver := gobble.NewReceiver(conn)
 
 	for {
-		msg, err := c.receiver.Receive()
+		msg, err := receiver.Receive()
 
 		if err != nil {
 			return err
@@ -42,6 +49,8 @@ func client(host string) error {
 			HandlePcSignal(&signal)
 		}
 	}
+
+	return nil
 }
 
 type ShimConn struct {
@@ -59,7 +68,7 @@ func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
 		Payload: bytes,
 	}
 	log.Println("client.transmitter.Transmit To", signal.To)
-	client.transmitter.Transmit(signal)
+	transmitter.Transmit(signal)
 	return len(bytes), nil
 }
 
@@ -74,8 +83,6 @@ func (sc *ShimConn) RemoteAddr() net.Addr               { return nil }
 func (sc *ShimConn) SetDeadline(t time.Time) error      { return nil }
 func (sc *ShimConn) SetReadDeadline(t time.Time) error  { return nil }
 func (sc *ShimConn) SetWriteDeadline(t time.Time) error { return nil }
-
-// client.peerConnections is a map[int]*PeerConn
 
 type PeerConn struct {
 	sideband  *ShimConn
@@ -99,11 +106,10 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 			handleRemoteUdp(&pc.udpConn)
 		}
 	}()
-	client.peerConnections[peerId] = pc
+	peerConnections[peerId] = pc
 	return pc
 }
 
-// Use Peer everywhere instead of PeerId
 func InitPeerConn(peerId int) {
 	log.Println("InitPeerConn(", peerId, ")")
 	MakePeerConn(peerId, true)
@@ -111,7 +117,7 @@ func InitPeerConn(peerId int) {
 
 func HandlePcSignal(signal *common.PcSignal) {
 	log.Println("HandlePcSignal(", signal, ")")
-	pc, ok := client.peerConnections[signal.From]
+	pc, ok := peerConnections[signal.From]
 	if !ok {
 		log.Println("Created new peer conn")
 		pc = MakePeerConn(signal.From, false)
@@ -127,12 +133,11 @@ func handleRemoteUdp(conn *net.Conn) {
 		log.Println("read from remote udp")
 		_ = n
 		if err != nil {
-			sendToCommanders(common.ErrorMsg{
-				"error in handleRemoteUdp" + err.Error(),
-			})
+			// blek
 		} else {
 			packet := common.ParseRemoteUdpPacket(data)
-			handle.Inject(packet.AsTransmittablePcap())
+			_ = packet
+			//handle.Inject(packet.AsTransmittablePcap())
 		}
 	}
 }

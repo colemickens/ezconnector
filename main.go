@@ -1,12 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"github.com/colemickens/gobble"
-	common "github.com/colemickens/goxpn/xpncommon"
 	"log"
-	"net"
-	"net/http"
+	"os"
 )
 
 type PcSignal struct {
@@ -18,15 +14,16 @@ type PcSignal struct {
 func main() {
 	mode := os.Args[1]
 
-	host := "goxpn.us.to:9000"
+	shost := ":9000"
+	chost := "goxpn.us.to" + shost
 
 	if mode == "client" {
-		err := client(host)
+		err := client(chost)
 		if err != nil {
 			panic(err)
 		}
 	} else if mode == "server" {
-		err := server(host)
+		err := server(shost)
 		if err != nil {
 			panic(err)
 		}
