@@ -38,6 +38,7 @@ func client(host string) error {
 	receiver := gobble.NewReceiver(conn)
 
 	for {
+		log.Println("receive...")
 		msg, err := receiver.Receive()
 
 		if err != nil {
@@ -47,7 +48,8 @@ func client(host string) error {
 		switch msg.(type) {
 		case PcSignal:
 			signal := msg.(PcSignal)
-			HandlePcSignal(&signal)
+			log.Println("received signal")
+			HandlePcSignal(signal)
 		case int:
 			// this is a previously connected client that
 			// the server is encouraging us to connect to
@@ -69,17 +71,19 @@ func newShimConn(to int) *ShimConn {
 }
 
 func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
+	log.Println("Writing via Write", bytes)
 	signal := &PcSignal{
 		To:      sc.to,
 		Payload: bytes,
 	}
-	log.Println("client.transmitter.Transmit To", signal.To)
+	log.Println("client.transmitter.Transmit", signal)
 	transmitter.Transmit(signal)
 	return len(bytes), nil
 }
 
 func (sc *ShimConn) Read(bytes []byte) (n int, err error) {
 	bytes = <-sc.readChan
+	log.Println("Return via Read", bytes)
 	return len(bytes), nil
 }
 
@@ -121,7 +125,7 @@ func InitPeerConn(peerId int) {
 	MakePeerConn(peerId, true)
 }
 
-func HandlePcSignal(signal *PcSignal) {
+func HandlePcSignal(signal PcSignal) {
 	log.Println("HandlePcSignal(", signal, ")")
 	pc, ok := peerConnections[signal.From]
 	if !ok {
@@ -130,6 +134,7 @@ func HandlePcSignal(signal *PcSignal) {
 	}
 	log.Println("handing off payload")
 	pc.sideband.readChan <- signal.Payload
+	log.Println("handed it")
 }
 
 func handleRemoteUdp(conn *net.Conn) {
