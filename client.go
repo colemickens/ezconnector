@@ -38,17 +38,16 @@ func client(host string) error {
 	receiver := gobble.NewReceiver(conn)
 
 	for {
-		log.Println("receive...")
 		msg, err := receiver.Receive()
-
 		if err != nil {
-			return err
+			log.Println("lost conn to server")
+			return nil
 		}
 
 		switch msg.(type) {
 		case PcSignal:
 			signal := msg.(PcSignal)
-			log.Println("received signal")
+			log.Println("client.receiver.Receiver", signal)
 			HandlePcSignal(signal)
 		case int:
 			// this is a previously connected client that
@@ -67,11 +66,11 @@ type ShimConn struct {
 }
 
 func newShimConn(to int) *ShimConn {
-	return &ShimConn{to, make(chan []byte)}
+	return &ShimConn{to, make(chan []byte, 40)}
 }
 
 func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
-	log.Println("Writing via Write", bytes)
+	log.Println("Writing via Write(", len(bytes), ")", bytes)
 	signal := &PcSignal{
 		To:      sc.to,
 		Payload: bytes,
@@ -83,7 +82,7 @@ func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
 
 func (sc *ShimConn) Read(bytes []byte) (n int, err error) {
 	bytes = <-sc.readChan
-	log.Println("Return via Read", bytes)
+	log.Println("Reading via Read(", len(bytes), ")", bytes)
 	return len(bytes), nil
 }
 
@@ -108,6 +107,7 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 	}
 	go func() {
 		var err error
+		time.Sleep(2)
 		pc.udpConn, err = nat.Connect(pc.sideband, pc.initiator)
 		if err != nil {
 			log.Println("err doing nat conn", err)
@@ -126,15 +126,11 @@ func InitPeerConn(peerId int) {
 }
 
 func HandlePcSignal(signal PcSignal) {
-	log.Println("HandlePcSignal(", signal, ")")
 	pc, ok := peerConnections[signal.From]
 	if !ok {
-		log.Println("Created new peer conn")
 		pc = MakePeerConn(signal.From, false)
 	}
-	log.Println("handing off payload")
 	pc.sideband.readChan <- signal.Payload
-	log.Println("handed it")
 }
 
 func handleRemoteUdp(conn *net.Conn) {

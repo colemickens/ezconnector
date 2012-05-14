@@ -29,8 +29,8 @@ func server(host string) error {
 	for {
 		lastUserId++
 
-		log.Println("accept...")
 		conn, err := conn.Accept()
+		log.Println("accepted user:", lastUserId)
 
 		if err != nil {
 			log.Println("err accepting", err)
@@ -47,7 +47,11 @@ func server(host string) error {
 		users[lastUserId] = u
 		go func() {
 			for {
-				msg, _ := u.receiver.Receive()
+				msg, err := u.receiver.Receive()
+				if err != nil {
+					log.Println("removed user:", lastUserId)
+					return
+				}
 
 				switch msg.(type) {
 
