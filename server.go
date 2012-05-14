@@ -49,7 +49,7 @@ func server(host string) error {
 			for {
 				msg, err := u.receiver.Receive()
 				if err != nil {
-					log.Println("removed user:", lastUserId)
+					log.Println("removed user:", u.id)
 					return
 				}
 
