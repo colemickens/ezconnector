@@ -83,7 +83,7 @@ func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
 func (sc *ShimConn) Read(bytes []byte) (int, error) {
 	tmp := <-sc.readChan
 	n := copy(bytes, tmp)
-	fmt.Println("Reading via Read(", n, ")", bytes[:n])
+	log.Println("Reading via Read(", n, ")", bytes[:n])
 	return n, nil
 }
 
