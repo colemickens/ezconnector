@@ -80,10 +80,11 @@ func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
 	return len(bytes), nil
 }
 
-func (sc *ShimConn) Read(bytes []byte) (n int, err error) {
-	bytes = <-sc.readChan
-	log.Println("Reading via Read(", len(bytes), ")", bytes)
-	return len(bytes), nil
+func (sc *ShimConn) Read(bytes []byte) (int, error) {
+	tmp := <-sc.readChan
+	n := copy(bytes, tmp)
+	fmt.Println("Reading via Read(", n, ")", bytes[:n])
+	return n, nil
 }
 
 func (sc *ShimConn) LocalAddr() net.Addr                { return nil }
