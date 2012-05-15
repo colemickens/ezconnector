@@ -147,6 +147,8 @@ func handleRemoteUdp(conn *net.Conn) {
 			//_ = packet
 			//handle.Inject(packet.AsTransmittablePcap())
 			log.Println("recvd packet properly")
+			log.Println(data)
+			log.Println(string(data))
 		}
 	}
 }
