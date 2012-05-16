@@ -114,6 +114,7 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 			log.Println("err doing nat conn", err)
 			log.Println("(remove from map?)")
 		} else {
+			log.Println("nat busted bitch")
 			handleRemoteUdp(&pc.udpConn)
 		}
 	}()
