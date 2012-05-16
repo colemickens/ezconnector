@@ -41,13 +41,13 @@ func client(host string) error {
 		msg, err := receiver.Receive()
 		if err != nil {
 			log.Println("lost conn to server")
+			// TODO: Return, let main try to reconnect to server, still
 			return nil
 		}
 
 		switch msg.(type) {
 		case PcSignal:
 			signal := msg.(PcSignal)
-			log.Println("client.receiver.Receiver", signal)
 			HandlePcSignal(signal)
 		case int:
 			// this is a previously connected client that
@@ -70,12 +70,10 @@ func newShimConn(to int) *ShimConn {
 }
 
 func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
-	log.Println("Writing via Write(", len(bytes), ")", bytes)
 	signal := &PcSignal{
 		To:      sc.to,
 		Payload: bytes,
 	}
-	log.Println("client.transmitter.Transmit", signal)
 	transmitter.Transmit(signal)
 	return len(bytes), nil
 }
@@ -83,7 +81,6 @@ func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
 func (sc *ShimConn) Read(bytes []byte) (int, error) {
 	tmp := <-sc.readChan
 	n := copy(bytes, tmp)
-	log.Println("Reading via Read(", n, ")", bytes[:n])
 	return n, nil
 }
 
@@ -111,9 +108,9 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 		pc.udpConn, err = nat.Connect(pc.sideband, pc.initiator)
 		if err != nil {
 			log.Println("err doing nat conn", err)
-			log.Println("(remove from map?)")
+			// TODO REMOVE FROM MAP
 		} else {
-			log.Println("nat busted bitch")
+			log.Println("nat busted!")
 			handleRemoteUdp(&pc.udpConn)
 		}
 	}()
@@ -122,7 +119,6 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 }
 
 func InitPeerConn(peerId int) {
-	log.Println("InitPeerConn(", peerId, ")")
 	MakePeerConn(peerId, true)
 }
 
@@ -143,13 +139,7 @@ func handleRemoteUdp(conn *net.Conn) {
 		if err != nil {
 			// blek
 		} else {
-			//packet := ParseRemoteUdpPacket(data)
-			//_ = packet
-			//handle.Inject(packet.AsTransmittablePcap())
-			log.Println(" data:")
-			log.Println(data)
-			log.Println("string:")
-			log.Println(string(data))
+			log.Println("udp packet", data)
 		}
 	}
 }

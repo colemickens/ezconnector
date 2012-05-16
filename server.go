@@ -59,7 +59,7 @@ func server(host string) error {
 					s := msg.(PcSignal)
 					s.From = u.id
 
-					log.Println("PcSignal from", s.From, "to", s.To, ":", s)
+					log.Println("pcsignal", s.From, "->", s.To)
 
 					toUser := userById(s.To)
 					if toUser != nil {
