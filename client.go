@@ -66,7 +66,7 @@ type ShimConn struct {
 }
 
 func newShimConn(to int) *ShimConn {
-	return &ShimConn{to, make(chan []byte, 40)}
+	return &ShimConn{to, make(chan []byte)}
 }
 
 func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
@@ -108,7 +108,6 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 	}
 	go func() {
 		var err error
-		time.Sleep(2)
 		pc.udpConn, err = nat.Connect(pc.sideband, pc.initiator)
 		if err != nil {
 			log.Println("err doing nat conn", err)
