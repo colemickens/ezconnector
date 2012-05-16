@@ -2,8 +2,8 @@ package main
 
 import (
 	"code.google.com/p/nat"
+	log "fmt"
 	"github.com/colemickens/gobble"
-	"log"
 	"net"
 	"time"
 )
