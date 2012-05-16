@@ -146,8 +146,9 @@ func handleRemoteUdp(conn *net.Conn) {
 			//packet := ParseRemoteUdpPacket(data)
 			//_ = packet
 			//handle.Inject(packet.AsTransmittablePcap())
-			log.Println("recvd packet properly")
+			log.Println(" data:")
 			log.Println(data)
+			log.Println("string:")
 			log.Println(string(data))
 		}
 	}
