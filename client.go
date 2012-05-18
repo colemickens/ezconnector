@@ -92,16 +92,18 @@ func (sc *ShimConn) SetReadDeadline(t time.Time) error  { return nil }
 func (sc *ShimConn) SetWriteDeadline(t time.Time) error { return nil }
 
 type PeerConn struct {
-	sideband  *ShimConn
-	initiator bool
-	udpConn   net.Conn
+	sideband   *ShimConn
+	initiator  bool
+	udpConn    net.Conn
+	ignorePkts bool
 }
 
 func MakePeerConn(peerId int, initiator bool) *PeerConn {
 	pc := &PeerConn{
-		sideband:  newShimConn(peerId),
-		initiator: initiator,
-		udpConn:   nil,
+		sideband:   newShimConn(peerId),
+		initiator:  initiator,
+		udpConn:    nil,
+		ignorePkts: true,
 	}
 	go func() {
 		var err error
@@ -111,7 +113,12 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 			// TODO REMOVE FROM MAP
 		} else {
 			log.Println("nat busted!")
-			handleRemoteUdp(&pc.udpConn)
+			go func() {
+				time.Sleep(2 * time.Second)
+				pc.ignorePkts = false
+				pc.udpConn.Write([]byte{0x00, 0x01, 0x02, 0x03})
+			}()
+			handleRemoteUdp(pc)
 		}
 	}()
 	peerConnections[peerId] = pc
@@ -130,15 +137,15 @@ func HandlePcSignal(signal PcSignal) {
 	pc.sideband.readChan <- signal.Payload
 }
 
-func handleRemoteUdp(conn *net.Conn) {
+func handleRemoteUdp(pc *PeerConn) {
 	data := make([]byte, 65535)
 	for {
-		n, err := (*conn).Read(data)
+		n, err := pc.udpConn.Read(data)
 		log.Println("read from remote udp")
 		_ = n
 		if err != nil {
 			// blek
-		} else {
+		} else if !pc.ignorePkts {
 			log.Println("udp packet", data)
 		}
 	}
