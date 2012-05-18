@@ -147,6 +147,9 @@ func handleRemoteUdp(pc *PeerConn) {
 			// blek
 		} else if !pc.ignorePkts {
 			log.Println("udp packet", data)
+			log.Println("echoing")
+			time.Sleep(3 * time.Second)
+			pc.udpConn.Write([]byte{0x00, 0x02, 0x04, 0x06, 0x08})
 		}
 	}
 }
