@@ -138,7 +138,8 @@ func HandlePcSignal(signal PcSignal) {
 }
 
 func handleRemoteUdp(pc *PeerConn) {
-	data := make([]byte, 65535)
+	//data := make([]byte, 65535)
+	var data []byte
 	for {
 		n, err := pc.udpConn.Read(data)
 		log.Println("read from remote udp")
