@@ -41,6 +41,7 @@ func run_client(host string) error {
 		err := decoder.Decode(&env)
 		if err != nil {
 			log.Println("lost conn to server")
+			log.Println(err)
 			// TODO: Return, let main try to reconnect to server, still
 			return nil
 		}

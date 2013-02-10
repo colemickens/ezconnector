@@ -29,6 +29,7 @@ func run_server(host string) error {
 	for {
 		lastUserId++
 
+		log.Println("accepting new user...")
 		conn, err := conn.Accept()
 		log.Println("accepted user:", lastUserId)
 
@@ -56,15 +57,13 @@ func run_server(host string) error {
 				}
 
 				if env.PcSignal != nil {
-					s := env.PcSignal
-					s.From = u.Id
+					env.PcSignal.From = u.Id
 
-					log.Println("pcsignal", s.From, "->", s.To)
+					log.Println("pcsignal", env.PcSignal.From, "->", env.PcSignal.To)
 
-					//toUser := userById(s.To)
-					toUser := users[s.To]
+					toUser := users[env.PcSignal.To]
 					if toUser != nil {
-						toUser.encoder.Encode(s)
+						toUser.encoder.Encode(env)
 					}
 				}
 			}
