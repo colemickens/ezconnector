@@ -2,20 +2,19 @@ package main
 
 import (
 	"code.google.com/p/nat"
+	"encoding/gob"
 	log "fmt"
-	"github.com/colemickens/gobble"
 	"net"
 	"time"
 )
 
 var peerConnections map[int]*PeerConn
-var transmitter *gobble.Transmitter
 
 func client_init() {
 	peerConnections = make(map[int]*PeerConn)
 }
 
-func client(host string) error {
+func run_client(host string) error {
 	client_init()
 
 	var err error
@@ -34,26 +33,28 @@ func client(host string) error {
 		return err
 	}
 
-	transmitter = gobble.NewTransmitter(conn)
-	receiver := gobble.NewReceiver(conn)
+	encoder := gob.NewEncoder(conn)
+	decoder := gob.NewDecoder(conn)
 
 	for {
-		msg, err := receiver.Receive()
+		var env Envelope
+		err := decoder.Decode(&env)
 		if err != nil {
 			log.Println("lost conn to server")
 			// TODO: Return, let main try to reconnect to server, still
 			return nil
 		}
 
-		switch msg.(type) {
-		case PcSignal:
-			signal := msg.(PcSignal)
-			HandlePcSignal(signal)
-		case int:
-			// this is a previously connected client that
-			// the server is encouraging us to connect to
-			peerId := msg.(int)
-			InitPeerConn(peerId)
+		if env.PcSignal != nil {
+			HandlePcSignal(encoder, *env.PcSignal)
+		}
+
+		if env.UserList != nil {
+			// This is the list of existing users.
+			// Let's try to establish a PeerConn to each
+			for _, u := range env.UserList {
+				InitPeerConn(encoder, u.Id)
+			}
 		}
 	}
 
@@ -61,20 +62,26 @@ func client(host string) error {
 }
 
 type ShimConn struct {
+	encoder  *gob.Encoder
 	to       int
 	readChan chan []byte
 }
 
-func newShimConn(to int) *ShimConn {
-	return &ShimConn{to, make(chan []byte)}
+func newShimConn(encoder *gob.Encoder, to int) *ShimConn {
+	return &ShimConn{encoder, to, make(chan []byte)}
 }
 
-func (sc *ShimConn) Write(bytes []byte) (n int, err error) {
-	signal := &PcSignal{
-		To:      sc.to,
-		Payload: bytes,
+func (sc *ShimConn) Write(bytes []byte) (int, error) {
+	env := &Envelope{
+		PcSignal: &PcSignal{
+			To:      sc.to,
+			Payload: bytes,
+		},
 	}
-	transmitter.Transmit(signal)
+	err := sc.encoder.Encode(env)
+	if err != nil {
+		// TODO:  handle this error
+	}
 	return len(bytes), nil
 }
 
@@ -98,9 +105,9 @@ type PeerConn struct {
 	ignorePkts bool
 }
 
-func MakePeerConn(peerId int, initiator bool) *PeerConn {
+func MakePeerConn(encoder *gob.Encoder, peerId int, initiator bool) *PeerConn {
 	pc := &PeerConn{
-		sideband:   newShimConn(peerId),
+		sideband:   newShimConn(encoder, peerId),
 		initiator:  initiator,
 		udpConn:    nil,
 		ignorePkts: true,
@@ -125,14 +132,14 @@ func MakePeerConn(peerId int, initiator bool) *PeerConn {
 	return pc
 }
 
-func InitPeerConn(peerId int) {
-	MakePeerConn(peerId, true)
+func InitPeerConn(encoder *gob.Encoder, peerId int) {
+	MakePeerConn(encoder, peerId, true)
 }
 
-func HandlePcSignal(signal PcSignal) {
+func HandlePcSignal(encoder *gob.Encoder, signal PcSignal) {
 	pc, ok := peerConnections[signal.From]
 	if !ok {
-		pc = MakePeerConn(signal.From, false)
+		pc = MakePeerConn(encoder, signal.From, false)
 	}
 	pc.sideband.readChan <- signal.Payload
 }

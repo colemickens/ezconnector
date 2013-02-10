@@ -1,19 +1,19 @@
 package main
 
 import (
-	"github.com/colemickens/gobble"
+	"encoding/gob"
 	"log"
 	"net"
 )
 
 var lastUserId int = 0
-var users map[int]*user
+var users map[int]*User
 
 func server_init() {
-	users = make(map[int]*user)
+	users = make(map[int]*User)
 }
 
-func server(host string) error {
+func run_server(host string) error {
 	server_init()
 
 	addr, err := net.ResolveTCPAddr("tcp", host)
@@ -37,62 +37,65 @@ func server(host string) error {
 			continue
 		}
 
-		u := &user{
-			id:          lastUserId,
-			conn:        conn,
-			transmitter: gobble.NewTransmitter(conn),
-			receiver:    gobble.NewReceiver(conn),
+		u := &User{
+			Id:      lastUserId,
+			conn:    conn,
+			encoder: gob.NewEncoder(conn),
+			decoder: gob.NewDecoder(conn),
 		}
 
 		users[lastUserId] = u
 		go func() {
 			for {
-				msg, err := u.receiver.Receive()
+				env := new(Envelope)
+				err := u.decoder.Decode(&env)
 				if err != nil {
-					log.Println("removed user:", u.id)
+					log.Println("forgetting user: ", u.Id)
+					// remove this user/conn from the map?
 					return
 				}
 
-				switch msg.(type) {
-
-				case PcSignal:
-					s := msg.(PcSignal)
-					s.From = u.id
+				if env.PcSignal != nil {
+					s := env.PcSignal
+					s.From = u.Id
 
 					log.Println("pcsignal", s.From, "->", s.To)
 
-					toUser := userById(s.To)
+					//toUser := userById(s.To)
+					toUser := users[s.To]
 					if toUser != nil {
-						toUser.transmitter.Transmit(s)
+						toUser.encoder.Encode(s)
 					}
 				}
 			}
 		}()
 
-		// tell about other user(s)
-		for id, _ := range users {
-			if id != u.id {
-				u.transmitter.Transmit(id)
+		// You just connected, let's tell you about the other users and you can connect to them
+		var userList []User
+		for _, iter_user := range users {
+			if iter_user.Id != u.Id { // ignore ourself (the client doesn't know their own ID because this is a trivial example app)
+				userList = append(userList, *iter_user)
 			}
+		}
+		env := &Envelope{
+			UserList: userList,
+		}
+		err = u.encoder.Encode(env)
+		if err != nil {
+			// TODO: what do we do here
 		}
 	}
 
 	return nil
 }
 
-type user struct {
-	id int
-
-	conn        net.Conn
-	transmitter *gobble.Transmitter
-	receiver    *gobble.Receiver
-}
-
-func userById(id int) *user {
+/*
+func userById(id int) *User {
 	for _, u := range users {
-		if u.id == id {
+		if u.Id == id {
 			return u
 		}
 	}
 	return nil
 }
+*/
