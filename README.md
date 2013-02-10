@@ -15,4 +15,4 @@ This was originally created to debug an issue I was having with a dependency (Da
 3. (in another) `ezconnector --client=localhost:9000`
 4. (on another computer) `ezconnector --client=192.168.1.118:9000`
 
-You will see the second client "call" the first client. They will exchange packets until they find a route to each other via David Andersen's nat traversal code.
+You will see the second client "call" the first client. They will exchange packets until they find a route to each other via David Anderson's nat traversal code.
