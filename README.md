@@ -8,9 +8,10 @@ This was originally created to debug an issue I was having with a dependency (Da
 
 ## Example Usage
 
-1. `go get github.com/colemickens/ezconnector`
-2. (in one terminal) `ezconnector --server=localhost:9000`
-3. (in another) `ezconnector --client=localhost:9000`
-4. (on another computer) `ezconnector --client=192.168.1.118:9000`
+1. `git clone github.com/colemickens/ezconnector; cd ezconnector`
+2. Build it with [davecheney's gb tool](http://getgb.io/docs/install/): `gb build all`
+3. (in one terminal) `ezconnector --server=localhost:9000`
+4. (in another) `ezconnector --client=localhost:9000`
+5. (on another computer) `ezconnector --client=192.168.1.118:9000`
 
 You will see the second client "call" the first client. They will exchange packets until they find a route to each other via David Anderson's nat traversal code.
